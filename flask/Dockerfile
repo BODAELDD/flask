@@ -54,7 +54,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # --- Application Code ---
 # Copy your bot script, the api folder, and ML models
-COPY your_bot_script.py .
+COPY app.py .
 COPY api/ ./api/
 COPY *.joblib ./
 
