@@ -1,26 +1,63 @@
-# Use an official Python runtime as a base image
-FROM python:3.11-slim
+# Dockerfile
 
-# Set the working directory to /app
+# Choose a Python base image that includes build tools
+FROM python:3.10-slim-bullseye as builder
+
+# Set environment variables to prevent interactive prompts during build
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install essential build tools and wget
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- TA-Lib Installation ---
+# 1. Download TA-Lib C library source
+WORKDIR /tmp
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    rm ta-lib-0.4.0-src.tar.gz
+
+# 2. Build and install the TA-Lib C library
+WORKDIR /tmp/ta-lib
+RUN ./configure --prefix=/usr && \
+    make && \
+    make install
+
+# --- Python Dependencies ---
+# Use a new stage for a cleaner final image
+FROM python:3.10-slim-bullseye
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Copy TA-Lib C library files from the builder stage
+COPY --from=builder /usr/lib/libta_lib* /usr/lib/
+COPY --from=builder /usr/include/ta-lib/* /usr/include/
+
+# Install runtime dependencies (like wget if needed, but unlikely now)
+# RUN apt-get update && apt-get install -y --no-install-recommends ... && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-# Install required packages
-RUN apt-get update -qq \
-      && apt-get install -y --no-install-recommends \
-      build-essential \
-      python3-dev \
-      && apt-get clean \
-      && rm -rf /var/lib/apt/lists/*
+# Copy requirements file first for layer caching
+COPY requirements.txt .
 
-# Copy the current directory contents into the container at /app
-COPY . /app
-
-# Install any needed packages specified in requirements.txt
-COPY requirements.txt /app/
+# Install Python dependencies (including the TA-Lib Python wrapper)
+# Use --no-cache-dir to reduce image size
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 5000 available to the world outside this container
-EXPOSE 5000
+# --- Application Code ---
+# Copy your bot script, the api folder, and ML models
+COPY your_bot_script.py .
+COPY api/ ./api/
+COPY *.joblib ./
 
-# Run app.py when the container launches
+# --- Run Command ---
+# Command to start your bot
 CMD ["python", "app.py"]
