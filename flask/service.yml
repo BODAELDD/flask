@@ -1,0 +1,22 @@
+# service.yml
+services:
+  - name: telegram-quotex-bot # Choose a name for your service
+    build: .                  # Use the Dockerfile in the current directory
+    # Define environment variables - Defang will inject secrets here
+    environment:
+      TELEGRAM_BOT_TOKEN: ${secrets.TELEGRAM_BOT_TOKEN}
+      QUOTEX_EMAIL: ${secrets.QUOTEX_EMAIL}
+      QUOTEX_PASSWORD: ${secrets.QUOTEX_PASSWORD}
+      # Add any other environment variables your bot or api folder might need
+      # e.g., PYTHONIOENCODING: utf-8 (often useful)
+    # Optional: Define resource requests/limits if needed
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 512M
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 1Gi
+    # Optional: Specify platform architecture if needed (usually auto-detected)
+    # platform: linux/amd64
